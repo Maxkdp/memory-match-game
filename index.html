@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Memory Match - Find & Reveal!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            padding: 10px;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: auto;
+            background: #1a1a2e;
+            border-radius: 10px;
+            display: block;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #scorePanel {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            flex: 1;
+            margin: 0 5px;
+            text-align: center;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 24px;
+            color: #ffd700;
+            margin-top: 5px;
+        }
+
+        #gameOverScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            display: none;
+            z-index: 10;
+            min-width: 300px;
+        }
+
+        #gameOverScreen h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        #gameOverScreen p {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            z-index: 10;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        #startScreen h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        #startScreen p {
+            font-size: 16px;
+            margin: 15px 0;
+            opacity: 0.8;
+        }
+
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .controls p {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        #levelInfo {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            color: white;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff6b6b);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        #audioControls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 5;
+        }
+
+        .audio-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .audio-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        #levelComplete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            display: none;
+            z-index: 10;
+            min-width: 300px;
+        }
+
+        #levelComplete h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #6bcf7f;
+        }
+
+        #photoReveal {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Media queries */
+        @media (max-height: 700px) {
+            #startScreen {
+                padding: 25px 20px;
+                transform: translate(-50%, -50%) scale(0.95);
+            }
+            
+            #startScreen h1 {
+                font-size: 28px;
+                margin-bottom: 15px;
+            }
+            
+            #startScreen p {
+                font-size: 14px;
+                margin: 10px 0;
+            }
+            
+            .controls {
+                margin: 15px 0;
+                padding: 15px;
+            }
+            
+            .controls p {
+                font-size: 13px;
+                margin: 8px 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #gameContainer {
+                padding: 15px;
+            }
+            
+            #scorePanel {
+                font-size: 14px;
+            }
+            
+            .stat {
+                padding: 8px 10px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="audioControls">
+            <button class="audio-btn" id="musicToggle" onclick="toggleMusic()">🎵</button>
+            <button class="audio-btn" id="soundToggle" onclick="toggleSound()">🔊</button>
+        </div>
+
+        <div id="scorePanel">
+            <div class="stat">
+                <div>LEVEL</div>
+                <span class="stat-value" id="levelDisplay">1</span>
+            </div>
+            <div class="stat">
+                <div>MOVES</div>
+                <span class="stat-value" id="movesDisplay">0</span>
+            </div>
+            <div class="stat">
+                <div>PAIRS</div>
+                <span class="stat-value" id="pairsDisplay">0/0</span>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+        <div id="levelInfo">
+            <div>Photos Unlocked: <span id="photosUnlocked">0</span></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="startScreen">
+            <h1>🎴 MEMORY MATCH</h1>
+            <p>Find matching pairs to reveal the photos!</p>
+            
+            <div class="controls">
+                <p><strong>🎯 OBJECTIVE:</strong></p>
+                <p>Click cards to flip them and find matching pairs</p>
+                <p><strong>🎮 HOW TO PLAY:</strong></p>
+                <p>• Click a card to reveal its symbol</p>
+                <p>• Click another card to find its match</p>
+                <p>• Match all pairs to complete the level</p>
+                <p>• Each level unlocks a new photo!</p>
+                <p><strong>⚡ DIFFICULTY:</strong></p>
+                <p>Level 1-2: Easy (4 pairs) 🟢</p>
+                <p>Level 3-4: Medium (5 pairs) 🟡</p>
+                <p>Level 5-6: Medium+ (6 pairs) 🟠</p>
+                <p>Level 7-8: Hard (7 pairs) 🔴</p>
+                <p>Level 9-10: Very Hard (8 pairs) 🔥</p>
+            </div>
+            
+            <button class="btn" onclick="startGame()">START GAME</button>
+        </div>
+
+        <div id="levelComplete">
+            <h2>🎉 LEVEL COMPLETE!</h2>
+            <p>Level <span id="levelScore">1</span> cleared!</p>
+            <img id="photoReveal" src="" alt="Revealed Photo" style="display:none;">
+            <button class="btn" onclick="nextLevel()">NEXT LEVEL</button>
+        </div>
+
+        <div id="gameOverScreen">
+            <h2 id="gameOverTitle">🎉 GAME COMPLETE!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>Levels Completed: <span id="levelsCompleted">0</span></p>
+            <p>Photos Unlocked: <span id="photosUnlocked">0</span></p>
+            <button class="btn" onclick="restartGame()">PLAY AGAIN</button>
+            <button class="btn" onclick="sendScoreToBot()">FINISH</button>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game state
+        let gameState = 'start'; // start, playing, levelComplete, gameover
+        let level = 1;
+        let moves = 0;
+        let pairsFound = 0;
+        let totalPairs = 0;
+        let photosUnlocked = 0;
+        let cards = [];
+        let flippedCards = [];
+        let canClick = true;
+
+        // Audio
+        let audioContext = null;
+        let backgroundMusic = null;
+        let musicEnabled = true;
+        let soundEnabled = true;
+        let activeOscillators = [];
+
+        // Photos
+        let photoURLs = [];
+        let currentPhotoIndex = 0;
+        let photoImages = [];
+        let photoImage = null;
+        let blurLevel = 20;
+        
+        // Canvas cache for blurred background (prevents flickering)
+        let blurredCanvas = document.createElement('canvas');
+        let blurredCtx = blurredCanvas.getContext('2d');
+        let cachedBlurLevel = -1; // Track when to update cache
+
+        // Telegram WebApp
+        let gameId = null;
+
+        // Card symbols
+        const symbols = ['🎮', '🎲', '🎯', '🎪', '🎨', '🎭', '🎸', '🎺', '🎹', '🎤', 
+                         '⚡', '⭐', '💎', '🔥', '💫', '🌟', '✨', '🎁', '🍕', '🍔'];
+
+        // Parse photos from URL
+        function parsePhotosFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const photosParam = urlParams.get('photos');
+            gameId = urlParams.get('game_id');
+            
+            if (photosParam) {
+                photoURLs = photosParam.split(',').map(url => url.trim());
+                console.log('Photos loaded:', photoURLs.length);
+            } else {
+                // Demo mode - use gradient placeholders
+                photoURLs = Array(3).fill(''); // 3 demo levels
+                console.log('Demo mode - no photos provided');
+            }
+        }
+
+        // Load photos
+        function loadPhotos() {
+            if (photoURLs.length === 0 || photoURLs[0] === '') {
+                // Demo mode
+                loadCurrentPhoto();
+                return;
+            }
+
+            let loadedCount = 0;
+            photoURLs.forEach((url, index) => {
+                const img = new Image();
+                img.onload = () => {
+                    photoImages[index] = img;
+                    loadedCount++;
+                    console.log(`Photo ${index + 1}/${photoURLs.length} loaded`);
+                    
+                    if (loadedCount === 1) {
+                        // Load first photo immediately
+                        loadCurrentPhoto();
+                    }
+                };
+                img.onerror = () => {
+                    console.error('Error loading photo:', url);
+                    loadedCount++;
+                };
+                img.src = url;
+            });
+        }
+
+        // Load current photo
+        function loadCurrentPhoto() {
+            if (photoImages[currentPhotoIndex]) {
+                photoImage = photoImages[currentPhotoIndex];
+                blurLevel = 20;
+                cachedBlurLevel = -1; // Force cache update
+                updateBlurredBackground();
+            }
+        }
+
+        // Update blurred background cache (only when blur level changes)
+        function updateBlurredBackground() {
+            if (!photoImage || !photoImage.complete) return;
+            
+            blurredCanvas.width = canvas.width;
+            blurredCanvas.height = canvas.height;
+            
+            const scale = Math.max(canvas.width / photoImage.width, canvas.height / photoImage.height);
+            const x = (canvas.width - photoImage.width * scale) / 2;
+            const y = (canvas.height - photoImage.height * scale) / 2;
+            
+            blurredCtx.filter = `blur(${blurLevel}px)`;
+            blurredCtx.drawImage(photoImage, x, y, photoImage.width * scale, photoImage.height * scale);
+            blurredCtx.filter = 'none';
+            
+            cachedBlurLevel = blurLevel;
+        }
+
+        // Draw background photo with blur (from cache - no flickering!)
+        function drawBackgroundPhoto() {
+            if (!photoImage || !photoImage.complete) {
+                // Gradient fallback
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            // Update cache only if blur level changed
+            if (cachedBlurLevel !== blurLevel) {
+                updateBlurredBackground();
+            }
+
+            // Draw from cache (fast, no flickering!)
+            ctx.drawImage(blurredCanvas, 0, 0);
+            
+            // Dark overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Card class
+        class Card {
+            constructor(symbol, x, y, width, height, pairId) {
+                this.symbol = symbol;
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.pairId = pairId;
+                this.flipped = false;
+                this.matched = false;
+                this.flipProgress = 0;
+                this.isFlipping = false;
+                this.opacity = 1; // For fade out animation
+                this.fadeSpeed = 0.05;
+            }
+
+            draw() {
+                // Skip drawing if fully faded
+                if (this.matched && this.opacity <= 0) {
+                    return;
+                }
+
+                ctx.save();
+
+                // Apply opacity for matched cards
+                if (this.matched) {
+                    ctx.globalAlpha = this.opacity;
+                }
+
+                // Calculate flip animation
+                let scaleX = 1;
+                if (this.isFlipping) {
+                    scaleX = Math.abs(Math.cos(this.flipProgress * Math.PI));
+                }
+
+                const scaledWidth = this.width * scaleX;
+                const offsetX = (this.width - scaledWidth) / 2;
+
+                // Shadow
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 5;
+
+                // Card background
+                if (this.matched) {
+                    // Matched card - green gradient (will fade out)
+                    const gradient = ctx.createLinearGradient(this.x + offsetX, this.y, 
+                                                             this.x + offsetX + scaledWidth, this.y + this.height);
+                    gradient.addColorStop(0, '#6bcf7f');
+                    gradient.addColorStop(1, '#48bb78');
+                    ctx.fillStyle = gradient;
+                } else if (this.flipped || this.flipProgress > 0.5) {
+                    // Flipped card - blue gradient
+                    const gradient = ctx.createLinearGradient(this.x + offsetX, this.y, 
+                                                             this.x + offsetX + scaledWidth, this.y + this.height);
+                    gradient.addColorStop(0, '#667eea');
+                    gradient.addColorStop(1, '#4d5ed8');
+                    ctx.fillStyle = gradient;
+                } else {
+                    // Face down card - purple gradient
+                    const gradient = ctx.createLinearGradient(this.x + offsetX, this.y, 
+                                                             this.x + offsetX + scaledWidth, this.y + this.height);
+                    gradient.addColorStop(0, '#764ba2');
+                    gradient.addColorStop(1, '#5a3880');
+                    ctx.fillStyle = gradient;
+                }
+
+                // Draw card
+                ctx.fillRect(this.x + offsetX, this.y, scaledWidth, this.height);
+
+                // Border
+                ctx.strokeStyle = this.matched ? '#ffd700' : '#ffd700';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(this.x + offsetX, this.y, scaledWidth, this.height);
+
+                // Draw content
+                if ((this.flipped || this.flipProgress > 0.5) && !this.matched) {
+                    // Show symbol
+                    ctx.fillStyle = 'white';
+                    ctx.font = `${this.height * 0.5}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.symbol, this.x + this.width / 2, this.y + this.height / 2);
+                } else if (this.matched) {
+                    // Show checkmark (will fade with card)
+                    ctx.fillStyle = 'white';
+                    ctx.font = `${this.height * 0.6}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('✓', this.x + this.width / 2, this.y + this.height / 2);
+                } else {
+                    // Show question mark
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = `bold ${this.height * 0.5}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('?', this.x + this.width / 2, this.y + this.height / 2);
+                }
+
+                ctx.restore();
+            }
+
+            update() {
+                if (this.isFlipping) {
+                    this.flipProgress += 0.15;
+                    if (this.flipProgress >= 1) {
+                        this.flipProgress = 0;
+                        this.isFlipping = false;
+                    }
+                }
+
+                // Fade out matched cards
+                if (this.matched && this.opacity > 0) {
+                    this.opacity -= this.fadeSpeed;
+                    if (this.opacity < 0) this.opacity = 0;
+                }
+            }
+
+            contains(x, y) {
+                return x >= this.x && x <= this.x + this.width &&
+                       y >= this.y && y <= this.y + this.height;
+            }
+
+            flip() {
+                if (!this.matched && !this.isFlipping) {
+                    this.isFlipping = true;
+                    this.flipped = !this.flipped;
+                }
+            }
+        }
+
+        // Initialize cards for level
+        function initCards() {
+            cards = [];
+            flippedCards = [];
+            pairsFound = 0;
+            canClick = true;
+
+            // Difficoltà progressiva basata sul NUMERO DEL LIVELLO
+            // NON sul numero totale di foto della creator
+            // Livello 1: 4 coppie (FACILE)
+            // Livello 2: 4 coppie 
+            // Livello 3: 5 coppie
+            // Livello 4: 5 coppie (MEDIO)
+            // Livello 5: 6 coppie
+            // Livello 6: 6 coppie
+            // Livello 7: 7 coppie (DIFFICILE)
+            // Livello 8: 7 coppie
+            // Livello 9: 8 coppie
+            // Livello 10: 8 coppie (MOLTO DIFFICILE)
+            
+            let pairsCount;
+            if (level === 1 || level === 2) {
+                pairsCount = 4; // 8 carte - FACILE
+            } else if (level === 3 || level === 4) {
+                pairsCount = 5; // 10 carte - MEDIO-FACILE
+            } else if (level === 5 || level === 6) {
+                pairsCount = 6; // 12 carte - MEDIO
+            } else if (level === 7 || level === 8) {
+                pairsCount = 7; // 14 carte - DIFFICILE
+            } else if (level === 9 || level === 10) {
+                pairsCount = 8; // 16 carte - MOLTO DIFFICILE
+            } else {
+                // Oltre il livello 10 (se creator carica più di 10 foto)
+                pairsCount = 9; // 18 carte - ESTREMO
+            }
+            
+            totalPairs = pairsCount;
+
+            // Create pairs
+            const cardSymbols = [];
+            for (let i = 0; i < pairsCount; i++) {
+                cardSymbols.push(symbols[i % symbols.length]);
+                cardSymbols.push(symbols[i % symbols.length]);
+            }
+
+            // Shuffle
+            for (let i = cardSymbols.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cardSymbols[i], cardSymbols[j]] = [cardSymbols[j], cardSymbols[i]];
+            }
+
+            // Layout - adjust grid based on number of cards
+            let cols, rows;
+            if (pairsCount <= 5) {
+                cols = 3; // Griglia 3 colonne per 4-5 coppie
+            } else if (pairsCount <= 7) {
+                cols = 4; // Griglia 4 colonne per 6-7 coppie
+            } else {
+                cols = 4; // Griglia 4 colonne anche per 8-9 coppie
+            }
+            rows = Math.ceil(cardSymbols.length / cols);
+            
+            const cardWidth = (canvas.width - 40) / cols - 10;
+            const cardHeight = cardWidth * 1.3;
+            
+            const gridWidth = cols * (cardWidth + 10);
+            const gridHeight = rows * (cardHeight + 10);
+            const startX = (canvas.width - gridWidth) / 2 + 5;
+            const startY = (canvas.height - gridHeight) / 2;
+
+            // Create cards
+            cardSymbols.forEach((symbol, index) => {
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+                const x = startX + col * (cardWidth + 10);
+                const y = startY + row * (cardHeight + 10);
+                
+                cards.push(new Card(symbol, x, y, cardWidth, cardHeight, index));
+            });
+        }
+
+        // Handle card click
+        function handleCardClick(x, y) {
+            if (!canClick || gameState !== 'playing') return;
+
+            for (let card of cards) {
+                if (card.contains(x, y) && !card.flipped && !card.matched) {
+                    card.flip();
+                    flippedCards.push(card);
+                    playSound('flip');
+                    moves++;
+
+                    if (flippedCards.length === 2) {
+                        canClick = false;
+                        setTimeout(checkMatch, 800);
+                    }
+
+                    updateUI();
+                    break;
+                }
+            }
+        }
+
+        // Check if cards match
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+
+            if (card1.symbol === card2.symbol) {
+                // Match!
+                card1.matched = true;
+                card2.matched = true;
+                pairsFound++;
+                playSound('match');
+
+                console.log(`Match found! Pairs: ${pairsFound}/${totalPairs}`);
+
+                // Reduce blur progressively as pairs are found in this level
+                const progress = pairsFound / totalPairs;
+                blurLevel = 20 * (1 - progress);
+
+                // Check if level complete
+                if (pairsFound === totalPairs) {
+                    console.log('Level complete! Moving to next level...');
+                    setTimeout(() => levelComplete(), 500);
+                }
+            } else {
+                // No match - flip back
+                playSound('wrong');
+                card1.flip();
+                card2.flip();
+            }
+
+            flippedCards = [];
+            canClick = true;
+            updateUI();
+        }
+
+        // Audio system
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function stopAllOscillators() {
+            activeOscillators.forEach(osc => {
+                try { osc.stop(); } catch (e) {}
+            });
+            activeOscillators = [];
+        }
+
+        function playBackgroundMusic() {
+            if (!musicEnabled) return;
+            initAudio();
+            stopBackgroundMusic();
+
+            // Melodia ORIGINALE per Memory Match - stile melodico come Brick Tease ma NOTE DIVERSE
+            const melody = [
+                // INTRO (4 bars) - Tema principale allegro
+                { note: 587, duration: 0.25 }, // D5
+                { note: 659, duration: 0.25 }, // E5
+                { note: 740, duration: 0.25 }, // F#5
+                { note: 880, duration: 0.4 }, // A5
+                { note: 740, duration: 0.2 }, // F#5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 0, duration: 0.15 }, // REST
+                
+                { note: 587, duration: 0.25 }, // D5
+                { note: 740, duration: 0.25 }, // F#5
+                { note: 880, duration: 0.3 }, // A5
+                { note: 988, duration: 0.5 }, // B5
+                { note: 0, duration: 0.2 }, // REST
+                
+                // VERSE 1 (8 bars) - Sviluppo melodico
+                { note: 880, duration: 0.3 }, // A5
+                { note: 988, duration: 0.2 }, // B5
+                { note: 1109, duration: 0.25 }, // C#6
+                { note: 1175, duration: 0.4 }, // D6
+                { note: 1109, duration: 0.2 }, // C#6
+                { note: 988, duration: 0.25 }, // B5
+                { note: 880, duration: 0.35 }, // A5
+                
+                { note: 740, duration: 0.3 }, // F#5
+                { note: 659, duration: 0.2 }, // E5
+                { note: 587, duration: 0.4 }, // D5
+                { note: 659, duration: 0.6 }, // E5
+                { note: 0, duration: 0.15 }, // REST
+                
+                { note: 740, duration: 0.25 }, // F#5
+                { note: 880, duration: 0.25 }, // A5
+                { note: 988, duration: 0.3 }, // B5
+                { note: 1109, duration: 0.35 }, // C#6
+                { note: 1175, duration: 0.5 }, // D6
+                { note: 0, duration: 0.2 }, // REST
+                
+                { note: 1109, duration: 0.2 }, // C#6
+                { note: 1175, duration: 0.2 }, // D6
+                { note: 1319, duration: 0.25 }, // E6
+                { note: 1175, duration: 0.3 }, // D6
+                { note: 988, duration: 0.4 }, // B5
+                { note: 880, duration: 0.5 }, // A5
+                
+                // CHORUS (8 bars) - Parte energica
+                { note: 1175, duration: 0.3 }, // D6
+                { note: 1109, duration: 0.2 }, // C#6
+                { note: 988, duration: 0.25 }, // B5
+                { note: 1109, duration: 0.3 }, // C#6
+                { note: 1175, duration: 0.35 }, // D6
+                { note: 1319, duration: 0.5 }, // E6
+                { note: 0, duration: 0.15 }, // REST
+                
+                { note: 1397, duration: 0.25 }, // F6
+                { note: 1319, duration: 0.2 }, // E6
+                { note: 1175, duration: 0.3 }, // D6
+                { note: 1109, duration: 0.25 }, // C#6
+                { note: 988, duration: 0.5 }, // B5
+                { note: 880, duration: 0.4 }, // A5
+                
+                { note: 740, duration: 0.3 }, // F#5
+                { note: 880, duration: 0.3 }, // A5
+                { note: 1109, duration: 0.25 }, // C#6
+                { note: 1175, duration: 0.35 }, // D6
+                { note: 1319, duration: 0.6 }, // E6
+                { note: 0, duration: 0.2 }, // REST
+                
+                { note: 1175, duration: 0.25 }, // D6
+                { note: 988, duration: 0.25 }, // B5
+                { note: 880, duration: 0.3 }, // A5
+                { note: 740, duration: 0.4 }, // F#5
+                { note: 587, duration: 0.5 }, // D5
+                
+                // BRIDGE (4 bars) - Transizione
+                { note: 659, duration: 0.3 }, // E5
+                { note: 740, duration: 0.3 }, // F#5
+                { note: 880, duration: 0.25 }, // A5
+                { note: 988, duration: 0.35 }, // B5
+                { note: 1109, duration: 0.4 }, // C#6
+                { note: 0, duration: 0.15 }, // REST
+                
+                { note: 988, duration: 0.2 }, // B5
+                { note: 880, duration: 0.2 }, // A5
+                { note: 740, duration: 0.3 }, // F#5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 587, duration: 0.6 }, // D5
+                
+                // OUTRO (4 bars) - Chiusura
+                { note: 740, duration: 0.25 }, // F#5
+                { note: 880, duration: 0.25 }, // A5
+                { note: 1109, duration: 0.3 }, // C#6
+                { note: 1175, duration: 0.5 }, // D6
+                { note: 0, duration: 0.2 }, // REST
+                
+                { note: 587, duration: 0.2 }, // D5
+                { note: 740, duration: 0.2 }, // F#5
+                { note: 880, duration: 0.2 }, // A5
+                { note: 1175, duration: 0.7 }, // D6
+                { note: 0, duration: 0.3 }, // REST
+            ];
+            
+            // Bassline ORIGINALE - armonia diversa ma stesso stile
+            const bassline = [
+                { note: 294, duration: 0.6 }, // D4
+                { note: 294, duration: 0.4 }, // D4
+                { note: 370, duration: 0.5 }, // F#4
+                { note: 440, duration: 0.5 }, // A4
+                
+                { note: 392, duration: 0.6 }, // G4
+                { note: 392, duration: 0.4 }, // G4
+                { note: 440, duration: 0.5 }, // A4
+                { note: 494, duration: 0.5 }, // B4
+                
+                { note: 294, duration: 0.8 }, // D4
+                { note: 370, duration: 0.6 }, // F#4
+                { note: 440, duration: 0.6 }, // A4
+                
+                { note: 392, duration: 0.7 }, // G4
+                { note: 330, duration: 0.5 }, // E4
+                { note: 294, duration: 0.8 }, // D4
+                
+                { note: 494, duration: 0.6 }, // B4
+                { note: 440, duration: 0.5 }, // A4
+                { note: 392, duration: 0.7 }, // G4
+                { note: 370, duration: 0.5 }, // F#4
+                
+                { note: 294, duration: 1.0 }, // D4
+                { note: 0, duration: 0.3 }, // REST
+            ];
+            
+            let currentTime = audioContext.currentTime;
+            
+            function playMelody() {
+                // Play main melody
+                melody.forEach((note) => {
+                    if (note.note > 0) {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        
+                        osc.type = 'square'; // 8-bit sound
+                        osc.frequency.setValueAtTime(note.note, currentTime);
+                        
+                        gain.gain.setValueAtTime(0.09, currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, currentTime + note.duration);
+                        
+                        osc.start(currentTime);
+                        osc.stop(currentTime + note.duration);
+                        
+                        activeOscillators.push(osc);
+                        
+                        osc.onended = () => {
+                            const index = activeOscillators.indexOf(osc);
+                            if (index > -1) activeOscillators.splice(index, 1);
+                        };
+                    }
+                    
+                    currentTime += note.duration;
+                });
+                
+                // Play bassline
+                let bassTime = audioContext.currentTime;
+                bassline.forEach((note) => {
+                    if (note.note > 0) {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        
+                        osc.type = 'triangle'; // Softer bass
+                        osc.frequency.setValueAtTime(note.note, bassTime);
+                        
+                        gain.gain.setValueAtTime(0.13, bassTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, bassTime + note.duration);
+                        
+                        osc.start(bassTime);
+                        osc.stop(bassTime + note.duration);
+                        
+                        activeOscillators.push(osc);
+                        
+                        osc.onended = () => {
+                            const index = activeOscillators.indexOf(osc);
+                            if (index > -1) activeOscillators.splice(index, 1);
+                        };
+                    }
+                    
+                    bassTime += note.duration;
+                });
+                
+                // Loop music
+                const totalDuration = melody.reduce((sum, note) => sum + note.duration, 0);
+                backgroundMusic = setTimeout(() => {
+                    currentTime = audioContext.currentTime;
+                    playMelody();
+                }, totalDuration * 1000);
+            }
+            
+            playMelody();
+        }
+
+        function stopBackgroundMusic() {
+            // Stop timeout loop
+            if (backgroundMusic) {
+                clearTimeout(backgroundMusic);
+                backgroundMusic = null;
+            }
+            
+            // Stop all active oscillators
+            activeOscillators.forEach(osc => {
+                try {
+                    osc.stop();
+                    osc.disconnect();
+                } catch (e) {
+                    // Already stopped, ignore
+                }
+            });
+            
+            // Clear array
+            activeOscillators = [];
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            gainNode.connect(audioContext.destination);
+            osc.connect(gainNode);
+            gainNode.gain.value = 0.15;
+            
+            switch(type) {
+                case 'flip':
+                    osc.frequency.value = 440;
+                    osc.type = 'sine';
+                    break;
+                case 'match':
+                    osc.frequency.value = 523;
+                    osc.type = 'square';
+                    break;
+                case 'wrong':
+                    osc.frequency.value = 196;
+                    osc.type = 'sawtooth';
+                    break;
+                case 'levelComplete':
+                    osc.frequency.value = 659;
+                    osc.type = 'square';
+                    break;
+                case 'win':
+                    osc.frequency.value = 784;
+                    osc.type = 'sine';
+                    break;
+            }
+            
+            const now = audioContext.currentTime;
+            osc.start(now);
+            
+            if (type === 'levelComplete' || type === 'win') {
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.stop(now + 0.3);
+            } else {
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.stop(now + 0.15);
+            }
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            const btn = document.getElementById('musicToggle');
+            btn.textContent = musicEnabled ? '🎵' : '🎶';
+            
+            if (musicEnabled && gameState === 'playing') {
+                playBackgroundMusic();
+            } else {
+                stopBackgroundMusic();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('soundToggle');
+            btn.textContent = soundEnabled ? '🔊' : '🔇';
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('levelDisplay').textContent = level;
+            document.getElementById('movesDisplay').textContent = moves;
+            document.getElementById('pairsDisplay').textContent = `${pairsFound}/${totalPairs}`;
+            
+            const progress = (photosUnlocked / Math.max(photoURLs.length, 1)) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('photosUnlocked').textContent = photosUnlocked;
+        }
+
+        // Draw game
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackgroundPhoto();
+            
+            cards.forEach(card => {
+                card.update();
+                card.draw();
+            });
+        }
+
+        // Game loop
+        function gameLoop() {
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameState = 'playing';
+            
+            // Parse and load photos
+            parsePhotosFromURL();
+            loadPhotos();
+            
+            initCards();
+            updateUI();
+            playBackgroundMusic();
+        }
+
+        // Level complete
+        function levelComplete() {
+            gameState = 'levelComplete';
+            stopBackgroundMusic();
+            playSound('levelComplete');
+            
+            photosUnlocked++;
+            
+            document.getElementById('levelScore').textContent = level;
+            
+            // Show revealed photo
+            const photoRevealImg = document.getElementById('photoReveal');
+            if (photoImage && photoImage.complete && photoImage.src) {
+                photoRevealImg.src = photoImage.src;
+                photoRevealImg.style.display = 'block';
+                console.log('Showing photo:', photoImage.src);
+            } else {
+                // Fallback: create gradient canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = 400;
+                tempCanvas.height = 300;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                const gradientColors = [
+                    ['#ff6b6b', '#4d9de0'],
+                    ['#ffd93d', '#9b59b6'],
+                    ['#6bcf7f', '#ff8c42'],
+                    ['#764ba2', '#667eea'],
+                    ['#f093fb', '#f5576c']
+                ];
+                
+                const colorPair = gradientColors[(level - 1) % gradientColors.length];
+                const gradient = tempCtx.createLinearGradient(0, 0, 400, 300);
+                gradient.addColorStop(0, colorPair[0]);
+                gradient.addColorStop(1, colorPair[1]);
+                tempCtx.fillStyle = gradient;
+                tempCtx.fillRect(0, 0, 400, 300);
+                
+                // Add level number
+                tempCtx.fillStyle = 'white';
+                tempCtx.font = 'bold 80px Arial';
+                tempCtx.textAlign = 'center';
+                tempCtx.textBaseline = 'middle';
+                tempCtx.fillText(`Level ${level}`, 200, 150);
+                
+                photoRevealImg.src = tempCanvas.toDataURL();
+                photoRevealImg.style.display = 'block';
+                console.log('Showing gradient fallback');
+            }
+            
+            document.getElementById('levelComplete').style.display = 'block';
+            updateUI();
+        }
+
+        // Next level
+        function nextLevel() {
+            document.getElementById('levelComplete').style.display = 'none';
+            
+            stopBackgroundMusic();
+            
+            level++;
+            moves = 0;
+            
+            // Check if game is complete (all photos unlocked)
+            if (photosUnlocked >= photoURLs.length) {
+                setTimeout(gameOver, 500);
+                return;
+            }
+            
+            // Load next photo
+            if (currentPhotoIndex < photoImages.length - 1) {
+                currentPhotoIndex++;
+                loadCurrentPhoto();
+            }
+            
+            initCards();
+            updateUI();
+            gameState = 'playing';
+            
+            setTimeout(() => {
+                playBackgroundMusic();
+            }, 500);
+        }
+
+        // Game over
+        function gameOver() {
+            gameState = 'gameover';
+            stopBackgroundMusic();
+            playSound('win');
+            
+            document.getElementById('gameOverTitle').textContent = '🎉 ALL PHOTOS UNLOCKED!';
+            document.getElementById('finalScore').textContent = moves;
+            document.getElementById('levelsCompleted').textContent = level;
+            document.getElementById('photosUnlocked').textContent = photosUnlocked;
+            
+            document.getElementById('gameOverScreen').style.display = 'block';
+        }
+
+        // Restart game
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            
+            stopBackgroundMusic();
+            
+            level = 1;
+            moves = 0;
+            photosUnlocked = 0;
+            currentPhotoIndex = 0;
+            loadCurrentPhoto();
+            initCards();
+            updateUI();
+            gameState = 'playing';
+            
+            setTimeout(() => {
+                playBackgroundMusic();
+            }, 300);
+        }
+
+        // Send score to bot
+        function sendScoreToBot() {
+            const data = {
+                game_id: gameId,
+                moves: moves,
+                levels: level,
+                photos_unlocked: photosUnlocked,
+                completed: photosUnlocked === photoURLs.length
+            };
+            
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.sendData(JSON.stringify(data));
+                window.Telegram.WebApp.close();
+            } else {
+                alert('Game Complete!\nPhotos: ' + photosUnlocked + '\nMoves: ' + moves);
+            }
+        }
+
+        // Mouse/touch controls
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            handleCardClick(x, y);
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+            handleCardClick(x, y);
+        }, { passive: false });
+
+        // Initialize Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+
+        // Start game loop
+        gameLoop();
+    </script>
+</body>
+</html>
