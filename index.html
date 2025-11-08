@@ -431,6 +431,9 @@
                     if (loadedCount === 1) {
                         // Load first photo immediately
                         loadCurrentPhoto();
+                        // Initialize game AFTER first photo is loaded
+                        initCards();
+                        updateUI();
                     }
                 };
                 img.onerror = () => {
@@ -1111,8 +1114,7 @@
             parsePhotosFromURL();
             loadPhotos();
             
-            initCards();
-            updateUI();
+            // initCards() and updateUI() are now called after first photo loads
             playBackgroundMusic();
         }
 
